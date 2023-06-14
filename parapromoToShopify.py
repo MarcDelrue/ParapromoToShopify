@@ -8,6 +8,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from unidecode import unidecode
+from selenium.webdriver.common.action_chains import ActionChains
+import time
 
 
 def get_filtered_product_name_from_csv(filename):
@@ -37,13 +39,20 @@ def accept_cookie(driver):
 def check_brand_match(driver, index):
     wait = WebDriverWait(driver, 50)
     product_brand = wait.until(EC.visibility_of_element_located((By.CLASS_NAME,'fmd_div_nom_marque')))
-    print(unidecode(product_brand.text.lower()),
-    unidecode(products[1][index].lower()),
-    unidecode(product_brand.text.lower()) == unidecode(products[1][index].lower()))
-    return False
+    return unidecode(product_brand.text.lower()) == unidecode(products[1][index].lower())
+
+def open_closed_content(driver):
+    wait = WebDriverWait(driver, 50)
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.div_table_informations span.arrow_right"))).click()
+
 
 def retrieve_product_data(driver):
     wait = WebDriverWait(driver, 50)
+    name = wait.until(EC.visibility_of_element_located((By.TAG_NAME,'h1'))).text
+    price = wait.until(EC.visibility_of_element_located((By.XPATH,"//span[contains(@itemprop, 'price')]"))).text
+    picture_link = wait.until(EC.visibility_of_element_located((By.XPATH,"//img[contains(@itemprop, 'image')]"))).get_attribute("src")
+    description = wait.until(EC.visibility_of_element_located((By.CLASS_NAME,"div_table_informations"))).text
+    print("NAME: ", name, "\n PRICE: ", price, "\n PICTURE URL: ", picture_link, "\n DESCRIPTION: ", description)
 
 
 def select_first_product(driver):
@@ -54,13 +63,15 @@ def select_first_product(driver):
 def start_search(driver, index):
     wait = WebDriverWait(driver, 50)
     try:
-        searchbar = wait.until(EC.element_to_be_clickable((By.ID,'input_search')))
+        searchbar = wait.until(EC.element_to_be_clickable((By.ID,'div_btn_search')))
         searchbar.click()
         input_searchbar = wait.until(EC.visibility_of_element_located((By.CLASS_NAME,'ais-SearchBox-input')))
         input_searchbar.send_keys(products[0][index])
         input_searchbar.send_keys(Keys.ENTER)
         if (check_brand_match(driver, index)):
             select_first_product(driver)
+            open_closed_content(driver)
+            retrieve_product_data(driver)
     except NoSuchElementException:
         print("Element not found.")
 
